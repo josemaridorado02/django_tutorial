@@ -63,4 +63,14 @@ pipeline {
             body: "Build ${env.BUILD_URL} - Result: ${currentBuild.result}"
         }
     }
+
+stage('Deploy to VPS') {
+    agent any
+    steps {
+        script {
+            sh """
+                ssh -o StrictHostKeyChecking=no oteo@jotedor.com 'bash ~/django-polls/deploy.sh'
+            """
+        }
+    }
 }
