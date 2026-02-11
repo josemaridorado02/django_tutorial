@@ -35,6 +35,7 @@ pipeline {
                     steps {
                         script {
                             sh "docker build -t ${DOCKER_IMAGE}:${BUILD_NUMBER} ."
+                            sh "docker tag ${DOCKER_IMAGE}:${BUILD_NUMBER} ${DOCKER_IMAGE}:latest"
                         }
                     }
                 }
@@ -43,6 +44,7 @@ pipeline {
                         script {
                             docker.withRegistry('', DOCKER_CREDENTIALS) {
                                 sh "docker push ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                                sh "docker push ${DOCKER_IMAGE}:latest"
                             }
                         }
                     }
@@ -50,7 +52,19 @@ pipeline {
                 stage('Clean Up') {
                     steps {
                         sh "docker rmi ${DOCKER_IMAGE}:${BUILD_NUMBER}"
+                        sh "docker rmi ${DOCKER_IMAGE}:latest"
                     }
+                }
+            }
+        }
+        
+        stage('Deploy to VPS') {
+            agent any
+            steps {
+                script {
+                    sh """
+                        ssh -o StrictHostKeyChecking=no oteo@charizard.jotedor.com 'bash ~/django-polls/deploy.sh'
+                    """
                 }
             }
         }
@@ -61,16 +75,6 @@ pipeline {
             mail to: 'josemariaoteodorado12@gmail.com',
             subject: "Pipeline: ${currentBuild.fullDisplayName}",
             body: "Build ${env.BUILD_URL} - Result: ${currentBuild.result}"
-        }
-    }
-
-stage('Deploy to VPS') {
-    agent any
-    steps {
-        script {
-            sh """
-                ssh -o StrictHostKeyChecking=no oteo@jotedor.com 'bash ~/django-polls/deploy.sh'
-            """
         }
     }
 }
